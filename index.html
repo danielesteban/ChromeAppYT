@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+    <head>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+        </style>
+        <script type="text/javascript">
+            var appWindow, appOrigin,
+                apiLoaded,
+                player, video_id;
+
+            function sendMessage(data) {
+                if(!appWindow || !appOrigin) return;
+                appWindow.postMessage(data, appOrigin);
+            }
+
+            function onYouTubeIframeAPIReady() {
+                apiLoaded = true;
+                video_id && loadVideo();
+            }
+
+            function loadVideo() {
+                var onStateChange = function(e) {
+                        sendMessage({
+                            func : 'state',
+                            data : e.data
+                        });
+                    },
+                    onError = function(e) {
+                        sendMessage({
+                            func : 'error',
+                            data : e.data
+                        });
+                    };
+                
+                player = new YT.Player('player', {
+                    height: '200',
+                    width: '200',
+                    videoId: video_id,
+                    events: {
+                        'onStateChange' : onStateChange,
+                        'onError' : onError
+                    },
+                    playerVars: {
+                        autoplay: 1,
+                        controls: 0,
+                        showinfo: 0,
+                        modestbranding: 1,
+                        iv_load_policy: 3,
+                        rel: 0,
+                        hd: 1
+                    }
+                });
+            }
+
+            window.addEventListener('message', function(e) {
+                switch(e.data.func) {
+                    case 'load':
+                        if(video_id) return;
+                        appWindow = e.source;
+                        appOrigin = e.origin;
+                        video_id = e.data.video;
+                        apiLoaded && loadVideo();
+                    break;
+                    case 'play':
+                        player.playVideo();
+                    break;
+                    case 'pause':
+                        player.pauseVideo();
+                    break;
+                    case 'seekTo':
+                        if(!player.getDuration) return;
+                        player.seekTo(player.getDuration() * e.data.fraction);
+                    break;
+                    case 'currentTime':
+                        sendMessage({
+                            callback : e.data.callback,
+                            data : player.getCurrentTime ? player.getCurrentTime() : 0
+                        });
+                    break;
+                    case 'duration':
+                        sendMessage({
+                            callback : e.data.callback,
+                            data : player.getDuration ? player.getDuration() : song.time
+                        });
+                    break;
+                    case 'loadedFraction':
+                        sendMessage({
+                            callback : e.data.callback,
+                            data : player.getVideoLoadedFraction ? player.getVideoLoadedFraction() : 0
+                        });
+                    break;
+                    case 'destruct':
+                        player.destroy();
+                        player = video_id = null;
+                    break;
+                }
+            });
+        </script>
+        <script src="//www.youtube.com/iframe_api"></script>
+    </head>
+    <body>
+        <div id="player"></div>
+    </body>
+</html>
