@@ -38,6 +38,10 @@
                             func : 'error',
                             data : e.data
                         });
+                    },
+                    onReady = function() {
+                        player.addEventListener('onStateChange', onStateChange);
+                        player.addEventListener('onError', onError);
                     };
                 
                 player = new YT.Player('player', {
@@ -45,8 +49,7 @@
                     width: '100%',
                     videoId: video_id,
                     events: {
-                        'onStateChange' : onStateChange,
-                        'onError' : onError
+                        'onReady' : onReady
                     },
                     playerVars: {
                         autoplay: 1,
